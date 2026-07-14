@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Next-Gen Code Explainer</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      /* Professional Corporate Palette */
+      --primary: #334155;
+      --primary-hover: #1e293b;
+      --accent: #475569;
+      --bg-header: linear-gradient(135deg, #1e293b, #0f172a);
+      
+      --card-bg: rgba(255, 255, 255, 0.94);
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border: #cbd5e1;
+      --radius: 8px;
+    }
+
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      margin: 0; 
+      padding: 0; 
+      line-height: 1.6; 
+      color: var(--text-main); 
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      
+      /* Base Step 0 Background Colors */
+      background-color: #eceef2;
+      background-image: linear-gradient(135deg, #eceef2 0%, #e2e6ed 50%, #d5dbe4 100%);
+      background-attachment: fixed;
+      transition: background 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    header { 
+      background: var(--bg-header); 
+      color: #f8fafc; 
+      padding: 35px 20px; 
+      text-align: center; 
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+      border-bottom: 1px solid #1e293b;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; width: 100%; height: 2px;
+      background: linear-gradient(90deg, transparent, #64748b, transparent);
+      animation: pulseGlow 4s infinite linear;
+    }
+
+    header h1 { 
+      margin: 0; 
+      font-size: 30px; 
+      font-weight: 700; 
+      letter-spacing: -0.5px; 
+      animation: trackingIn 0.8s cubic-bezier(0.215, 0.610, 0.355, 1.000) both;
+    }
+    header p { margin: 8px 0 0; color: #94a3b8; font-size: 15px; font-weight: 400; }
+
+    .container { 
+      max-width: 1100px; 
+      margin: 40px auto; 
+      padding: 0 20px;
+      position: relative;
+    }
+
+    .step-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 40px;
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      display: none; 
+      opacity: 0;
+      transform: translateY(15px) scale(0.99);
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .step-card.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    
+    #step0.active {
+      animation: slideDownIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .step-card h2 {
+      margin-top: 0;
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--primary);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 25px;
+    }
+
+    .progress-bar {
+      display: flex;
+      justify-content: space-between;
+      max-width: 450px;
+      margin: 0 auto 40px auto;
+      position: relative;
+      transition: opacity 0.4s ease, transform 0.4s ease, visibility 0.4s ease;
+      transform: translateY(-10px);
+    }
+    
+    .progress-bar.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(-20px);
+    }
+
+    .progress-bar::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 0; right: 0;
+      height: 2px;
+      background: #cbd5e1;
+      z-index: 1;
+      transform: translateY(-50%);
+    }
+    .progress-line {
+      position: absolute;
+      top: 50%; left: 0; width: 0%;
+      height: 2px;
+      background: var(--primary);
+      z-index: 2;
+      transform: translateY(-50%);
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .progress-step {
+      width: 36px; height: 36px;
+      background: #f1f5f9;
+      border: 2px solid #cbd5e1;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 14px; z-index: 3;
+      color: var(--text-muted);
+      transition: all 0.4s ease;
+    }
+    .progress-step.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+      box-shadow: 0 0 0 4px rgba(51, 65, 85, 0.15);
+    }
+    .progress-step.completed {
+      background: #475569;
+      border-color: #475569;
+      color: white;
+    }
+
+    .welcome-lead {
+      font-size: 16px;
+      color: var(--text-main);
+      margin-bottom: 25px;
+      max-width: 800px;
+      line-height: 1.7;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label { font-weight: 600; margin-bottom: 8px; font-size: 13px; color: #334155; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    select, textarea { 
+      padding: 10px 12px; 
+      border-radius: var(--radius); 
+      border: 1px solid var(--border); 
+      font-size: 14px; 
+      background: rgba(248, 250, 252, 0.8);
+      color: var(--text-main);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    select:focus, textarea:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(51, 65, 85, 0.08); }
+    
+    textarea { 
+      width: 100%; min-height: 280px; 
+      font-family: "SFMono-Regular", Consolas, Menlo, monospace; 
+      box-sizing: border-box; 
+    }
+
+    .actions-panel { display: flex; justify-content: space-between; margin-top: 30px; }
+    .btn {
+      padding: 11px 22px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 41, 59, 0.15); }
+    .btn-primary:active { transform: translateY(0); }
+    
+    .btn-secondary { background: #e2e8f0; color: #334155; border: 1px solid #cbd5e1; }
+    .btn-secondary:hover { background: #cbd5e1; color: #0f172a; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 35px;
+    }
+    @media (min-width: 768px) {
+      .dashboard-layout { grid-template-columns: 1.2fr 0.8fr; }
+    }
+
+    .dashboard-layout h3 {
+      font-size: 16px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #334155;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+
+    .output-card {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 20px;
+      border-radius: var(--radius);
+      border: 1px solid #1e293b;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .output-card h3 { color: #94a3b8; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
+    
+    pre { 
+      background: #020617; 
+      padding: 15px; 
+      border-radius: 4px; 
+      overflow-x: auto; 
+      font-family: Consolas, monospace; 
+      white-space: pre-wrap;
+      border: 1px solid #1e293b;
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+
+    .meta-info { color: #64748b; font-size: 12px; line-height: 1.5; margin-top: 10px; }
+
+    .formatted-output { font-size: 15px; color: #334155; }
+    .formatted-output h1, .formatted-output h2, .formatted-output h3 { color: #0f172a; font-weight: 600; }
+    .formatted-output code { background: #f1f5f9; color: #b91c1c; padding: 2px 5px; border-radius: 4px; font-size: 85%; border: 1px solid #e2e8f0; }
+    .formatted-output pre code { background: transparent; color: inherit; padding: 0; border: none; }
+    
+    .tab-header { display: flex; border-bottom: 1px solid var(--border); margin-top: 30px; }
+    .tab-btn { padding: 8px 16px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--text-muted); cursor: pointer; transition: color 0.2s; }
+    .tab-btn.active { color: var(--primary); border-bottom: 2px solid var(--primary); margin-bottom: -1px; }
+    .tab-content { display: none; padding: 20px 0; }
+    .tab-content.active { display: block; animation: fadeInTab 0.3s ease; }
+
+    @keyframes pulseGlow {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    @keyframes fadeInTab {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideDownIn {
+      from { opacity: 0; transform: translateY(-30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes trackingIn {
+      0% { letter-spacing: -0.5em; opacity: 0; }
+      40% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Next-Gen Code Explainer</h1>
+    <p>Enterprise Code Analysis & Architectural Verification Engine</p>
+  </header>
+
+  <div class="container">
+    
+    <!-- Progress Stepper Interface (Hidden on Introduction Step) -->
+    <div class="progress-bar hidden" id="stepperContainer">
+      <div class="progress-line" id="progressLine"></div>
+      <div class="progress-step" id="pStep1">1</div>
+      <div class="progress-step" id="pStep2">2</div>
+      <div class="progress-step" id="pStep3">3</div>
+    </div>
+
+    <!-- STAGE 0: Introduction & Welcome -->
+    <div class="step-card active" id="step0">
+      <h2>Welcome!</h2>
+      <div class="welcome-lead">
+        <p>Welcome to the next-gen code explainer, where you can learn the structure of your code line by line with level-based explanations.</p>
+        <p><strong>Steps:</strong></p>
+        <ol>
+          <li>Select the language of your code along with your target level and preferred language of explanation.</li>
+          <li>Enable cross-language syntax and don't miss the chance to see your logic ported to other formats!</li>
+          <li>Paste your raw execution code, and you are ready to roll.</li>
+        </ol>
+      </div>
+
+      <div class="actions-panel">
+        <div></div>
+        <button class="btn btn-primary" onclick="navigateToStep(1)">Get Started →</button>
+      </div>
+    </div>
+
+    <!-- STAGE 1: Preferences Selection -->
+    <div class="step-card" id="step1">
+      <h2>Step 1: Environment & Pipeline Settings</h2>
+      <div class="options-grid">
+        <div class="form-group">
+          <label for="language">Source Language</label>
+          <select id="language">
+            <option value="python">Python</option>
+            <option value="c">C</option>
+            <option value="cpp">C++</option>
+            <option value="javascript">JavaScript</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="explanationLanguage">Explanation Language</label>
+          <select id="explanationLanguage">
+            <option value="english">English</option>
+            <option value="hindi">Hindi (हिंदी)</option>
+            <option value="telugu">Telugu (తెలుగు)</option>
+            <option value="tamil">Tamil (தமிழ்)</option>
+            <option value="marathi">Marathi (मराठी)</option>
+            <option value="bengali">Bengali (বাংলা)</option>
+            <option value="gujarati">Gujarati (ગુજરાતી)</option>
+            <option value="kannada">Kannada (ಕನ್ನಡ)</option>
+            <option value="malayalam">Malayalam (മലയാളം)</option>
+            <option value="odia">Odia (ଓଡ଼ିଆ)</option>
+            <option value="punjabi">Punjabi (ਪੰਜਾਬੀ)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="level">Target Complexity Level</label>
+          <select id="level">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="cross">Cross-Language Syntax</label>
+          <select id="cross">
+            <option value="no">Disable Cross References</option>
+            <option value="yes">Enable Cross References</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="visualization">Preferred Mental Model</label>
+          <select id="visualization">
+            <option value="none">None</option>
+            <option value="flowchart">Flowchart Structure</option>
+            <option value="analogy">Metaphorical Analogy</option>
+          </select>
+        </div>
+      </div>
+      <div class="actions-panel">
+        <button class="btn btn-secondary" onclick="navigateToStep(0)">← Welcome Screen</button>
+        <button class="btn btn-primary" onclick="navigateToStep(2)">Continue to Code Input →</button>
+      </div>
+    </div>
+
+    <!-- STAGE 2: Code Submission Terminal -->
+    <div class="step-card" id="step2">
+      <h2>Step 2: Paste your code here</h2>
+      <div class="form-group">
+        <textarea id="code" placeholder="Paste or construct your programmatic execution block here..."></textarea>
+      </div>
+      <div class="actions-panel">
+        <button class="btn btn-secondary" onclick="navigateToStep(1)">← Configuration Settings</button>
+        <button class="btn btn-primary" id="submitBtn" onclick="handleFormSubmission()">Analyze & Compute Compilation</button>
+      </div>
+    </div>
+
+    <!-- STAGE 3: Intelligence Dashboard Panels -->
+    <div class="step-card" id="step3">
+      <h2>Step 3: Comprehensive Analytical Report</h2>
+      
+      <div class="dashboard-layout">
+        <div>
+          <h3>Technical System Breakdown</h3>
+          <div id="explanation" class="formatted-output"></div>
+        </div>
+        
+        <div>
+          <div class="output-card">
+            <h3>Standard Output Console</h3>
+            <pre id="programOutput">Awaiting pipeline compilation execution metrics...</pre>
+            <div class="meta-info">
+              <span id="executionTime"></span>
+            </div>
+          </div>
+
+          <!-- Dynamic Tabs Switcher -->
+          <div class="tab-header">
+            <button class="tab-btn active" onclick="switchTab('tabVis')">Visualization Output</button>
+            <button class="tab-btn" onclick="switchTab('tabRefine')">Refine Parameters</button>
+          </div>
+
+          <!-- Visualization Tab Content Viewport -->
+          <div id="tabVis" class="tab-content active">
+            <div id="visualizationOutput" class="formatted-output"></div>
+          </div>
+
+          <!-- Refine / Feedback Engine Viewport -->
+          <div id="tabRefine" class="tab-content">
+            <div style="display:flex; flex-direction: column; gap:12px;">
+              <textarea id="feedback" style="min-height:100px;" placeholder="Input refinement instruction adjustments (e.g., 'Detail performance profiling complexity models')..."></textarea>
+              <button class="btn btn-primary" id="sendFeedback" style="align-self: flex-start;">Apply Model Corrections</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions-panel">
+        <button class="btn btn-secondary" onclick="navigateToStep(2)">← Resubmit Source Code</button>
+        <div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentStep = 0;
+
+    // Refactored step background matrix to map valid CSS linear-gradient string values
+    const stepBackgrounds = {
+      0: 'linear-gradient(135deg, #eceef2 0%, #e2e6ed 50%, #d5dbe4 100%)',
+      1: 'linear-gradient(135deg, #e4e8ee 0%, #dbe1e8 50%, #cfd7e1 100%)',
+      2: 'linear-gradient(135deg, #cbd5e1 0%, rgba(184,196,212,0.2) 50%, rgba(148,163,184,0.24) 100%)',
+      3: 'linear-gradient(135deg, #d2d9e4 0%, #c5ceda 50%, #b0bdce 100%)'
+    };
+
+    function navigateToStep(stepNumber) {
+      document.querySelectorAll('.step-card').forEach(card => card.classList.remove('active'));
+      
+      currentStep = stepNumber;
+      const activeCard = document.getElementById(`step${currentStep}`);
+      activeCard.classList.add('active');
+      
+      // Control progress stepper panel visibility
+      const stepperContainer = document.getElementById("stepperContainer");
+      if (currentStep === 0) {
+        stepperContainer.classList.add("hidden");
+      } else {
+        stepperContainer.classList.remove("hidden");
+        updateProgressBar();
+      }
+      
+      // Apply the gradient color map correctly over standard properties to activate native transitions
+      if (stepBackgrounds[stepNumber]) {
+        document.body.style.backgroundImage = stepBackgrounds[stepNumber];
+      }
+    }
+
+    function updateProgressBar() {
+      for(let i = 1; i <= 3; i++) {
+        const stepEl = document.getElementById(`pStep${i}`);
+        if(i < currentStep) {
+          stepEl.className = "progress-step completed";
+        } else if(i === currentStep) {
+          stepEl.className = "progress-step active";
+        } else {
+          stepEl.className = "progress-step";
+        }
+      }
+      const progressPercent = ((currentStep - 1) / 2) * 100;
+      document.getElementById("progressLine").style.width = `${progressPercent}%`;
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    async function handleFormSubmission() {
+      const language = document.getElementById("language").value;
+      const explanationLanguage = document.getElementById("explanationLanguage").value;
+      const level = document.getElementById("level").value;
+      const cross = document.getElementById("cross").value;
+      const visualization = document.getElementById("visualization").value;
+      const code = document.getElementById("code").value;
+
+      const submitBtn = document.getElementById("submitBtn");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Processing Pipeline Analytics...";
+      
+      document.getElementById("programOutput").textContent = "Allocating sandbox virtualization container execution instances...";
+      
+      try {
+        const response = await fetch("https://parted-upcountry-agreement.ngrok-free.dev/explain", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ language, explanation_language: explanationLanguage, level, code, cross, visualization })
+        });
+
+        if (!response.ok) throw new Error(`HTTP Core Error code status: ${response.status}`);
+        const data = await response.json();
+
+        if (data.status === "success") {
+          document.getElementById("programOutput").textContent = data.program_output || "Process terminated without emitting data variables to standard stdout channels.";
+          document.getElementById("executionTime").innerHTML = `
+            <strong>Performance Profile:</strong> ${data.execution_seconds}s (${data.execution_minutes}m)<br>
+            <strong>Kernel Trace Timestamp:</strong> ${data.day}, ${data.date} @ ${data.time}
+          `;
+          document.getElementById("explanation").innerHTML = marked.parse(data.explanation);
+          document.getElementById("visualizationOutput").innerHTML = marked.parse(data.visualization_text || "No specific architectural model mapping requested.");
+          
+          navigateToStep(3);
+        } else {
+          document.getElementById("programOutput").textContent = "Compiler Interrupted Exception Diagnostics:\n" + data.message;
+          navigateToStep(3); 
+        }
+      } catch (error) {
+        alert("Pipeline connectivity error detected: " + error.message);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Analyze & Compute Compilation";
+      }
+    }
+
+    document.getElementById("sendFeedback").addEventListener("click", async function() {
+      const feedbackInput = document.getElementById("feedback");
+      const feedback = feedbackInput.value;
+      const code = document.getElementById("code").value;
+      
+      if(!feedback.trim()) return alert("Please specify adjustment values prior to model adaptation requests.");
+
+      try {
+        const response = await fetch("https://parted-upcountry-agreement.ngrok-free.dev/feedback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, feedback, customStyle: null })
+        });
+
+        if (!response.ok) throw new Error(`HTTP compilation modification status code: ${response.status}`);
+        const data = await response.json();
+        
+        document.getElementById("explanation").innerHTML = marked.parse(data.refined_explanation || "Optimization pipeline refinement anomaly recorded.");
+        feedbackInput.value = "";
+      } catch (error) {
+        document.getElementById("explanation").textContent = "Failure to integrate adjusted metrics into dynamic layer:\n" + error.message;
+      }
+    });
+  </script>
+</body>
+</html>
