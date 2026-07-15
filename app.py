@@ -6,13 +6,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+# Ensure you have 'pip install sarvam-ai' in your requirements.txt
 from sarvamai import SarvamAI
 import time
 from datetime import datetime
 
 app = FastAPI(title="Next-Gen Code Explainer")
 
-# Enable CORS
+# Enable CORS - Crucial for web communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -46,14 +47,12 @@ class FeedbackRequest(BaseModel):
 # ---------------- ROUTES ----------------
 @app.get("/")
 def home():
-    # Corrected pathing: points to the same directory as this file
     current_dir = os.path.dirname(os.path.abspath(__file__))
     html_path = os.path.join(current_dir, "demo.html")
     return FileResponse(html_path)
 
 @app.get("/favicon.ico")
 async def favicon():
-    # Corrected pathing: points to the same directory as this file
     current_dir = os.path.dirname(os.path.abspath(__file__))
     favicon_path = os.path.join(current_dir, "favicon.ico")
     if os.path.exists(favicon_path):
@@ -90,8 +89,7 @@ def ask_sarvam(prompt: str) -> str:
     try:
         response = ai_client.chat.completions(
             model="sarvam-30b",
-            messages=[{"role": "user", "content": prompt}],
-            reasoning_effort=None
+            messages=[{"role": "user", "content": prompt}]
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -107,100 +105,34 @@ def explain(request: CodeRequest):
     lang_instruction = f"\n\nCRITICAL: Provide the entire response output strictly in the {request.explanation_language} language."
 
     now = datetime.now()
-    day_name = now.strftime("%A")
-    date_str = now.strftime("%Y-%m-%d")
-    time_str = now.strftime("%H:%M:%S")
-
     if error:
-        correction_prompt = (
-            f"The following code has errors:\n{request.code}\n\nError: {error}\n"
-            "Identify the exact line(s) with errors, correct them, and provide ONE corrected version. "
-            "Explain each correction briefly line by line."
-        )
-        correction_prompt += lang_instruction
+        correction_prompt = f"The following code has errors:\n{request.code}\n\nError: {error}\nCorrect it and explain line by line." + lang_instruction
         corrected = ask_sarvam(correction_prompt)
-        end_time = time.time()
-        return {
-            "status": "error",
-            "message": error,
-            "corrected_code": corrected,
-            "execution_seconds": round(end_time - start_time, 2),
-            "day": day_name, "date": date_str, "time": time_str
-        }
+        return {"status": "error", "message": error, "corrected_code": corrected}
 
     program_output = decode_stdout(result)
-    level = request.level.lower()
-
-    if level == "beginner":
-        explanation_prompt = f"Explain this {request.language} code line by line for a beginner with some theory and syntax:\n{request.code}"
-    elif level == "intermediate":
-        explanation_prompt = f"Explain this {request.language} code line by line for an intermediate level programmer:\n{request.code}"
-    elif level == "advanced":
-        explanation_prompt = (
-            f"Explain this {request.language} code by logic for an advanced programmer. Focus on its logic explaination rather than syntax"
-            f"Include analysis of efficiency and time complexity:\n{request.code}"
-        )
-    else:
-        explanation_prompt = f"Explain this {request.language} code clearly:\n{request.code}"
-
-    explanation_prompt += lang_instruction
+    
+    # Prompting logic
+    explanation_prompt = f"Explain this {request.language} code ({request.level} level):\n{request.code}" + lang_instruction
     ai_explanation = ask_sarvam(explanation_prompt)
 
-    vis_choice = request.visualization.lower()
-    if vis_choice == "flowchart":
-        vis_prompt = (
-            f"Generate one well formatted flowchart that shows the flow of this code:\n{request.code}\n\n"
-            f"Represent this strictly as a step-by-step algorithmic flowchart mapping out data flow, conditions, and loops."
-        )
-        vis_prompt += lang_instruction
-        ai_visualization = ask_sarvam(vis_prompt)
-    elif vis_choice == "analogy":
-        vis_prompt = f"Give one short real-world analogy for this {request.language} code:\n{request.code}"
-        vis_prompt += lang_instruction
-        ai_visualization = ask_sarvam(vis_prompt)
-    else:
-        ai_visualization = "None requested."
+    # Visualization
+    ai_visualization = ask_sarvam(f"Generate an analogy or flowchart for this code:\n{request.code}" + lang_instruction) if request.visualization != "none" else "None"
 
-    if request.cross.lower() == "yes":
-        cross_prompt = f"Explain how this logic looks in Java, Python, C, and C++:\n{request.code}"
-        cross_prompt += lang_instruction
-        cross_text = ask_sarvam(cross_prompt)
-        ai_explanation += f"\n\n--- Cross-Language Insights ---\n{cross_text}"
-
-    end_time = time.time()
     return {
         "status": "success",
         "program_output": program_output,
         "explanation": ai_explanation,
         "visualization_text": ai_visualization,
-        "execution_seconds": round(end_time - start_time, 2),
-        "day": day_name, "date": date_str, "time": time_str
+        "execution_seconds": round(time.time() - start_time, 2)
     }
 
 # ---------------- FEEDBACK ENDPOINT ----------------
-FEEDBACK_STORE = {}
-
 @app.post("/feedback")
 def feedback(request: FeedbackRequest):
-    previous_feedback = FEEDBACK_STORE.get(request.code, "")
-    FEEDBACK_STORE[request.code] = previous_feedback + "\n" + request.feedback
-    
-    feedback_prompt = (
-        f"Here is the code:\n{request.code}\n\n"
-        f"User feedback history:\n{FEEDBACK_STORE[request.code]}\n\n"
-        f"Custom explanation request: {request.customStyle}\n\n"
-        f"Please refine the explanation again based on all feedback above."
-    )
-    refined_explanation = ask_sarvam(feedback_prompt)
-    
-    now = datetime.now()
-    return {
-        "status": "success",
-        "refined_explanation": refined_explanation,
-        "day": now.strftime("%A"),
-        "date": now.strftime("%Y-%m-%d"),
-        "time": now.strftime("%H:%M:%S")
-    }
+    feedback_prompt = f"Refine the explanation for this code:\n{request.code}\n\nFeedback: {request.feedback}"
+    refined = ask_sarvam(feedback_prompt)
+    return {"status": "success", "refined_explanation": refined}
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
