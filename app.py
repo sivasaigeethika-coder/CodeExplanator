@@ -46,16 +46,16 @@ class FeedbackRequest(BaseModel):
 # ---------------- ROUTES ----------------
 @app.get("/")
 def home():
-    backend_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(backend_dir)
-    html_path = os.path.join(parent_dir, "demo.html")
+    # Corrected pathing: points to the same directory as this file
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    html_path = os.path.join(current_dir, "demo.html")
     return FileResponse(html_path)
 
 @app.get("/favicon.ico")
 async def favicon():
-    backend_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(backend_dir)
-    favicon_path = os.path.join(parent_dir, "favicon.ico")
+    # Corrected pathing: points to the same directory as this file
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    favicon_path = os.path.join(current_dir, "favicon.ico")
     if os.path.exists(favicon_path):
         return FileResponse(favicon_path)
     return {"status": "no favicon"}
@@ -106,7 +106,6 @@ def explain(request: CodeRequest):
 
     lang_instruction = f"\n\nCRITICAL: Provide the entire response output strictly in the {request.explanation_language} language."
 
-    # Current timestamp details
     now = datetime.now()
     day_name = now.strftime("%A")
     date_str = now.strftime("%Y-%m-%d")
@@ -121,17 +120,12 @@ def explain(request: CodeRequest):
         correction_prompt += lang_instruction
         corrected = ask_sarvam(correction_prompt)
         end_time = time.time()
-        execution_seconds = round(end_time - start_time, 2)
-        execution_minutes = round(execution_seconds / 60, 2)
         return {
             "status": "error",
             "message": error,
             "corrected_code": corrected,
-            "execution_seconds": execution_seconds,
-            "execution_minutes": execution_minutes,
-            "day": day_name,
-            "date": date_str,
-            "time": time_str
+            "execution_seconds": round(end_time - start_time, 2),
+            "day": day_name, "date": date_str, "time": time_str
         }
 
     program_output = decode_stdout(result)
@@ -174,19 +168,13 @@ def explain(request: CodeRequest):
         ai_explanation += f"\n\n--- Cross-Language Insights ---\n{cross_text}"
 
     end_time = time.time()
-    execution_seconds = round(end_time - start_time, 2)
-    execution_minutes = round(execution_seconds / 60, 2)
-
     return {
         "status": "success",
         "program_output": program_output,
         "explanation": ai_explanation,
         "visualization_text": ai_visualization,
-        "execution_seconds": execution_seconds,
-        "execution_minutes": execution_minutes,
-        "day": day_name,
-        "date": date_str,
-        "time": time_str
+        "execution_seconds": round(end_time - start_time, 2),
+        "day": day_name, "date": date_str, "time": time_str
     }
 
 # ---------------- FEEDBACK ENDPOINT ----------------
@@ -196,28 +184,23 @@ FEEDBACK_STORE = {}
 def feedback(request: FeedbackRequest):
     previous_feedback = FEEDBACK_STORE.get(request.code, "")
     FEEDBACK_STORE[request.code] = previous_feedback + "\n" + request.feedback
-
+    
     feedback_prompt = (
         f"Here is the code:\n{request.code}\n\n"
         f"User feedback history:\n{FEEDBACK_STORE[request.code]}\n\n"
         f"Custom explanation request: {request.customStyle}\n\n"
         f"Please refine the explanation again based on all feedback above."
     )
-
     refined_explanation = ask_sarvam(feedback_prompt)
-
+    
     now = datetime.now()
-    day_name = now.strftime("%A")
-    date_str = now.strftime("%Y-%m-%d")
-    time_str = now.strftime("%H:%M:%S")
-
     return {
         "status": "success",
         "refined_explanation": refined_explanation,
-        "day": day_name,
-        "date": date_str,
-        "time": time_str
+        "day": now.strftime("%A"),
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M:%S")
     }
 
 if __name__ == "__main__":
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
