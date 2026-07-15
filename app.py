@@ -2,14 +2,14 @@ import os
 import requests
 import base64
 import uvicorn
+import time
+from datetime import datetime
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 # Ensure you have 'pip install sarvam-ai' in your requirements.txt
 from sarvamai import SarvamAI
-import time
-from datetime import datetime
 
 app = FastAPI(title="Next-Gen Code Explainer")
 
@@ -22,10 +22,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Sarvam AI setup
-SARVAM_KEY = os.getenv("SARVAM_API_KEY", "sk_n57hfs7t_e5CqgICSvwUxlwW3ZicAgCnx")
+# Sarvam AI setup - Using environment variable for security
+SARVAM_KEY = os.getenv("SARVAM_API_KEY")
 try:
-    ai_client = SarvamAI(api_subscription_key=SARVAM_KEY)
+    ai_client = SarvamAI(api_subscription_key=SARVAM_KEY) if SARVAM_KEY else None
 except Exception as e:
     ai_client = None
     print(f"⚠️ Sarvam AI Client initialization warning: {e}")
@@ -84,7 +84,7 @@ def decode_stdout(result):
 
 # ---------------- SARVAM AI HELPER ----------------
 def ask_sarvam(prompt: str) -> str:
-    if not ai_client or not SARVAM_KEY:
+    if not ai_client:
         return "AI Error: Please configure your environment with a valid SARVAM_API_KEY."
     try:
         response = ai_client.chat.completions(
@@ -103,8 +103,8 @@ def explain(request: CodeRequest):
     error = extract_error(result)
 
     lang_instruction = f"\n\nCRITICAL: Provide the entire response output strictly in the {request.explanation_language} language."
-
     now = datetime.now()
+
     if error:
         correction_prompt = f"The following code has errors:\n{request.code}\n\nError: {error}\nCorrect it and explain line by line." + lang_instruction
         corrected = ask_sarvam(correction_prompt)
@@ -124,7 +124,11 @@ def explain(request: CodeRequest):
         "program_output": program_output,
         "explanation": ai_explanation,
         "visualization_text": ai_visualization,
-        "execution_seconds": round(time.time() - start_time, 2)
+        "execution_seconds": round(time.time() - start_time, 2),
+        "execution_minutes": 0,
+        "day": now.strftime("%A"),
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M %p")
     }
 
 # ---------------- FEEDBACK ENDPOINT ----------------
